@@ -1,1 +1,1 @@
-from .own_function import get_target_file_path
+from .own_function import target_file_path, target_file_path_with_level
