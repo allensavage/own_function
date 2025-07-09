@@ -28,6 +28,12 @@ def filter_files_by_extension(path_list, extensions):
         if path.suffix.lower() in ext_set:
             filtered_files.append(path)
 
+    if not filtered_files:
+        print("No valid video files found. Exiting.")
+        exit(1)
+
+    print(f"Found {len(filtered_files)} videos")
+
     return filtered_files
 
 
