@@ -1,82 +1,57 @@
 from pathlib import Path
+from collections import deque
 
-def target_file_path(input_dir: str, source_ext: str) -> list[str]:
+
+def filter_files_by_extension(path_list, extensions):
     """
-    get all file path matching the source_ext.
-    if sub_dir provided, get all file path with parent dir plus sub_dir and the full file name.
+    Filters a list of paths to include only files with specified extensions.
+
+    Args:
+        path_list (list): List of file paths (strings or Path objects)
+        extensions (list): List of target extensions (e.g., ['.txt', '.md'])
+
+    Returns:
+        list: Filtered Path objects with specified extensions
     """
-    # Dictionary to group files by their base name
-    file_groups = {}
+    # Convert extensions to lowercase for case-insensitive matching
+    ext_set = {ext.lower() for ext in extensions}
 
-    folder_path = Path(input_dir)
+    filtered_files = []
+    for item in path_list:
+        path = Path(item) if not isinstance(item, Path) else item
 
-    # Iterate through all files in the folder, extracting file path with the same file name
-    for file in folder_path.rglob("*"):
-        if file.is_file():
-            # get file name without extension
-            base_name = file.stem
-            print(base_name)
-            if base_name not in file_groups:
-                file_groups[base_name] = set()
-            file_groups[base_name].add(file)
-    
-    print(file_groups)
+        # Skip directories and non-existent paths
+        if not path.is_file():
+            continue
 
-    # Identify file with only source extension and no other file with the same file name
-    only_target_file = [
-        file 
-        for base_name, file_set in file_groups.items() 
-        for file in file_set
-        if file.suffix == source_ext and len(file_set) == 1
-    ]
-    print(only_target_file)
+        # Check if extension matches (case-insensitive)
+        if path.suffix.lower() in ext_set:
+            filtered_files.append(path)
 
-    target_files = []
-
-    for file in only_target_file:
-        target_files.append(str(file.resolve()))
-
-    return target_files
+    return filtered_files
 
 
-def target_file_path_with_level(input_dir: str, source_ext: str, level: int) -> list[str]:
+def list_files_by_depth(root_path: str, max_depth: int) -> list[str]:
     """
-    get all file path matching the source_ext.
-    if sub_dir provided, get all file path with parent dir plus sub_dir and the full file name.
+    List files up to a specified depth level.
+    Returns all available files if max_depth exceeds actual folder depth.
     """
-    # Dictionary to group files by their base name
-    file_groups = {}
+    root = Path(root_path)
+    if not root.is_dir():
+        raise ValueError(f"Path '{root}' is not a directory")
 
-    folder_path = Path(input_dir)
-    
-    # Iterate through files in the specific level folder, extracting file path with the same file name
-    for depth in range(level + 1):
-        # Create pattern like * for depth0, */* for depth1, */*/* for depth2
-        pattern = '*/' * depth + '*'
-        for path in folder_path.glob(pattern):
-            if path.is_file():
+    files = []
+    queue = deque([(root, 0)])  # (folder_path, current_depth)
 
-                # get file name without extension
-                base_name = path.stem
-                print(base_name)
-                if base_name not in file_groups:
-                    file_groups[base_name] = set()
-                file_groups[base_name].add(path)
-    
-    print(file_groups)
+    while queue:
+        current_dir, depth = queue.popleft()
 
-    # Identify file with only source extension and no other file with the same file name
-    only_target_file = [
-        file 
-        for base_name, file_set in file_groups.items() 
-        for file in file_set
-        if file.suffix == source_ext and len(file_set) == 1
-    ]
-    print(only_target_file)
+        for item in current_dir.iterdir():
+            if item.is_file() and depth <= max_depth:
+                files.append(item)
+            elif item.is_dir():
+                next_depth = depth + 1
+                if next_depth <= max_depth:
+                    queue.append((item, next_depth))
 
-    target_files = []
-
-    for file in only_target_file:
-        target_files.append(str(file.resolve()))
-
-    return target_files
+    return files
